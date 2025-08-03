@@ -7,7 +7,9 @@ function searchByText() {
 
   saveSearchHistory(query);
 
-  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`)
+  const adjustedQuery = query;
+
+  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(adjustedQuery)}`)
     .then(response => {
       if (!response.ok) throw new Error("No summary found.");
       return response.json();
@@ -21,32 +23,46 @@ function searchByText() {
       showSearchHistory();
     })
     .catch(error => {
-      resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+      resultDiv.innerHTML = `
+        <p>No direct Wikipedia summary found.</p>
+        <a href="https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(query)}" target="_blank">
+          Search "${query}" on Wikipedia
+        </a>
+      `;
     });
 }
 
-async function searchByImage() {
+function searchByImage() {
   const input = document.getElementById("imageInput");
   if (!input.files[0]) return alert("Please upload an image.");
 
-  showPopup("Classifying image...", "🤖");
+  showPopup("Uploading image...", "📤");
 
   const reader = new FileReader();
-  const img = new Image();
+  reader.onload = function () {
+    showPopup("Searching with image...", "🔎");
 
-  reader.onload = async function (e) {
-    img.src = e.target.result;
-    img.onload = async () => {
-      const model = await mobilenet.load();
-      const predictions = await model.classify(img);
-      const label = predictions[0]?.className || "Unknown";
+    const img = new Image();
+    img.src = reader.result;
+    img.onload = function () {
+      const model = ml5.imageClassifier("MobileNet", () => {
+        model.classify(img, (err, results) => {
+          if (err || !results || results.length === 0) {
+            document.getElementById("result").innerHTML = `<p>Image recognition failed.</p>`;
+            showPopup("Image not recognized", "❌");
+            return;
+          }
 
-      showPopup(`Image recognized as: ${label}`, "✅");
-      document.getElementById("searchInput").value = label;
-      searchByText();
+          const label = results[0].label;
+          document.getElementById("searchInput").value = label;
+          showPopup(`Identified as "${label}"`, "✅");
+
+          // Run text search with identified label
+          searchByText();
+        });
+      });
     };
   };
-
   reader.readAsDataURL(input.files[0]);
 }
 
@@ -70,6 +86,8 @@ function repeatSearch(query) {
   searchByText();
 }
 
+window.onload = showSearchHistory;
+
 function showPopup(message, emoji = "🖼️") {
   const modal = document.getElementById("popupModal");
   document.getElementById("popupText").innerText = message;
@@ -80,11 +98,4 @@ function showPopup(message, emoji = "🖼️") {
 function closePopup() {
   document.getElementById("popupModal").classList.add("hidden");
 }
-
-window.onload = function () {
-  showSearchHistory();
-  document.getElementById("textSearchBtn").addEventListener("click", searchByText);
-  document.getElementById("imageSearchBtn").addEventListener("click", searchByImage);
-  document.getElementById("popupOkBtn").addEventListener("click", closePopup);
-};
 
