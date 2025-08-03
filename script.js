@@ -25,24 +25,28 @@ function searchByText() {
     });
 }
 
-function searchByImage() {
+async function searchByImage() {
   const input = document.getElementById("imageInput");
   if (!input.files[0]) return alert("Please upload an image.");
 
-  showPopup("Uploading image...", "📤");
+  showPopup("Classifying image...", "🤖");
 
+  const img = new Image();
   const reader = new FileReader();
-  reader.onload = function () {
-    showPopup("Searching with image...", "🔎");
 
-    setTimeout(() => {
-      document.getElementById("result").innerHTML = `
-        <p>Image search feature is coming soon.</p>
-        <a href="https://images.google.com" target="_blank">Open Google Images</a>
-      `;
-      showPopup("Search Complete!", "✅");
-    }, 1500);
+  reader.onload = async function (e) {
+    img.src = e.target.result;
+    img.onload = async () => {
+      const model = await mobilenet.load();
+      const predictions = await model.classify(img);
+      const topPrediction = predictions[0]?.className || "Unknown";
+
+      showPopup(`Image recognized as: ${topPrediction}`, "🧠");
+      document.getElementById("searchInput").value = topPrediction;
+      searchByText(); // Use the recognized label to search Wikipedia
+    };
   };
+
   reader.readAsDataURL(input.files[0]);
 }
 
