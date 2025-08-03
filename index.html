@@ -4,19 +4,19 @@
   <meta charset="UTF-8">
   <title>SmartSearch</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ml5@latest/dist/ml5.min.js"></script>
 </head>
 <body>
   <div class="container">
     <h1>🔍 SmartSearch</h1>
+
     <input type="text" id="searchInput" placeholder="Type something to search...">
-    <button id="textSearchBtn">Search</button>
+    <button onclick="searchByText()">Search</button>
 
     <p>OR</p>
 
     <input type="file" id="imageInput" accept="image/*">
-    <button id="imageSearchBtn">Search by Image</button>
+    <button onclick="searchByImage()">Search by Image</button>
 
     <div id="result"></div>
     <div id="searchHistory"></div>
@@ -27,7 +27,7 @@
     <div class="modal-content">
       <span class="pixel-img" id="popupImage">🖼️</span>
       <p id="popupText">Loading...</p>
-      <button id="popupOkBtn">OK</button>
+      <button onclick="closePopup()">OK</button>
     </div>
   </div>
 
