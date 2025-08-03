@@ -1,34 +1,37 @@
+let cache = {};
+
 function searchByText() {
   const query = document.getElementById("searchInput").value.trim();
   if (!query) return alert("Please enter a search term.");
 
   const resultDiv = document.getElementById("result");
-  resultDiv.innerHTML = "<p>Loading...</p>";
 
+  // Use cached data if available
+  if (cache[query]) {
+    resultDiv.innerHTML = cache[query];
+    return;
+  }
+
+  resultDiv.innerHTML = `<p>🔄 Fetching results...</p>`;
   saveSearchHistory(query);
 
-  const adjustedQuery = query;
-
-  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(adjustedQuery)}`)
+  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`)
     .then(response => {
       if (!response.ok) throw new Error("No summary found.");
       return response.json();
     })
     .then(data => {
-      resultDiv.innerHTML = `
+      const html = `
         <h2>${data.title}</h2>
         <p>${data.extract}</p>
         <a href="${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
       `;
+      cache[query] = html;
+      resultDiv.innerHTML = html;
       showSearchHistory();
     })
     .catch(error => {
-      resultDiv.innerHTML = `
-        <p>No direct Wikipedia summary found.</p>
-        <a href="https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(query)}" target="_blank">
-          Search "${query}" on Wikipedia
-        </a>
-      `;
+      resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
     });
 }
 
@@ -40,24 +43,22 @@ function searchByImage() {
 
   const reader = new FileReader();
   reader.onload = function () {
-    showPopup("Searching with image...", "🔎");
+    showPopup("Classifying image...", "🔎");
 
     const img = new Image();
     img.src = reader.result;
     img.onload = function () {
-      const model = ml5.imageClassifier("MobileNet", () => {
-        model.classify(img, (err, results) => {
-          if (err || !results || results.length === 0) {
-            document.getElementById("result").innerHTML = `<p>Image recognition failed.</p>`;
-            showPopup("Image not recognized", "❌");
+      const classifier = ml5.imageClassifier('MobileNet', () => {
+        classifier.classify(img, (err, results) => {
+          if (err) {
+            closePopup();
+            document.getElementById("result").innerHTML = `<p>Error: ${err.message}</p>`;
             return;
           }
 
-          const label = results[0].label;
-          document.getElementById("searchInput").value = label;
-          showPopup(`Identified as "${label}"`, "✅");
-
-          // Run text search with identified label
+          const topResult = results[0].label;
+          document.getElementById("searchInput").value = topResult;
+          closePopup();
           searchByText();
         });
       });
@@ -98,4 +99,3 @@ function showPopup(message, emoji = "🖼️") {
 function closePopup() {
   document.getElementById("popupModal").classList.add("hidden");
 }
-
