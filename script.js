@@ -1,4 +1,3 @@
-
 function searchByText() {
   const query = document.getElementById("searchInput").value.trim();
   if (!query) return alert("Please enter a search term.");
@@ -8,21 +7,21 @@ function searchByText() {
 
   saveSearchHistory(query);
 
-  fetch(\`https://en.wikipedia.org/api/rest_v1/page/summary/\${encodeURIComponent(query)}\`)
+  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`)
     .then(response => {
       if (!response.ok) throw new Error("No summary found.");
       return response.json();
     })
     .then(data => {
-      resultDiv.innerHTML = \`
-        <h2>\${data.title}</h2>
-        <p>\${data.extract}</p>
-        <a href="\${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
-      \`;
+      resultDiv.innerHTML = `
+        <h2>${data.title}</h2>
+        <p>${data.extract}</p>
+        <a href="${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
+      `;
       showSearchHistory();
     })
     .catch(error => {
-      resultDiv.innerHTML = \`<p>Error: \${error.message}</p>\`;
+      resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
     });
 }
 
@@ -37,10 +36,10 @@ function searchByImage() {
     showPopup("Searching with image...", "🔎");
 
     setTimeout(() => {
-      document.getElementById("result").innerHTML = \`
+      document.getElementById("result").innerHTML = `
         <p>Image search feature is coming soon.</p>
         <a href="https://images.google.com" target="_blank">Open Google Images</a>
-      \`;
+      `;
       showPopup("Search Complete!", "✅");
     }, 1500);
   };
@@ -58,16 +57,14 @@ function saveSearchHistory(query) {
 
 function showSearchHistory() {
   const history = JSON.parse(localStorage.getItem("searchHistory")) || [];
-  const historyHTML = history.map(item => \`<li onclick="repeatSearch('\${item}')">\${item}</li>\`).join("");
-  document.getElementById("searchHistory").innerHTML = \`<h3>Recent Searches</h3><ul>\${historyHTML}</ul>\`;
+  const historyHTML = history.map(item => `<li onclick="repeatSearch('${item}')">${item}</li>`).join("");
+  document.getElementById("searchHistory").innerHTML = `<h3>Recent Searches</h3><ul>${historyHTML}</ul>`;
 }
 
 function repeatSearch(query) {
   document.getElementById("searchInput").value = query;
   searchByText();
 }
-
-window.onload = showSearchHistory;
 
 function showPopup(message, emoji = "🖼️") {
   const modal = document.getElementById("popupModal");
@@ -79,3 +76,11 @@ function showPopup(message, emoji = "🖼️") {
 function closePopup() {
   document.getElementById("popupModal").classList.add("hidden");
 }
+
+window.onload = function () {
+  showSearchHistory();
+
+  document.getElementById("textSearchBtn").addEventListener("click", searchByText);
+  document.getElementById("imageSearchBtn").addEventListener("click", searchByImage);
+  document.getElementById("popupOkBtn").addEventListener("click", closePopup);
+};
