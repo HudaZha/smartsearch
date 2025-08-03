@@ -1,4 +1,3 @@
-// Text Search Function
 function searchByText() {
   const query = document.getElementById("searchInput").value.trim();
   if (!query) return alert("Please enter a search term.");
@@ -10,14 +9,14 @@ function searchByText() {
 
   fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`)
     .then(response => {
-      if (!response.ok) throw new Error("No information found.");
+      if (!response.ok) throw new Error("No summary found.");
       return response.json();
     })
     .then(data => {
       resultDiv.innerHTML = `
         <h2>${data.title}</h2>
         <p>${data.extract}</p>
-        <a href="${data.content_urls.desktop.page}" target="_blank">Read more</a>
+        <a href="${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
       `;
       showSearchHistory();
     })
@@ -26,42 +25,52 @@ function searchByText() {
     });
 }
 
-// Image Search Function
 function searchByImage() {
   const input = document.getElementById("imageInput");
   if (!input.files[0]) return alert("Please upload an image.");
 
-  showPopup("Analyzing image...", "🔎");
+  showPopup("Uploading image...", "📤");
 
   const reader = new FileReader();
   reader.onload = function () {
-    const image = new Image();
-    image.src = reader.result;
-    image.onload = function () {
-      classifyImage(image);
+    showPopup("Searching with image...", "🔎");
+
+    const img = new Image();
+    img.src = reader.result;
+    img.onload = () => {
+      const classifier = ml5.imageClassifier('MobileNet', () => {
+        classifier.classify(img, (err, results) => {
+          if (err || !results || !results[0]) {
+            document.getElementById("result").innerHTML = "<p>Image recognition failed.</p>";
+            return;
+          }
+
+          const prediction = results[0].label;
+          saveSearchHistory(prediction);
+          fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(prediction)}`)
+            .then(response => {
+              if (!response.ok) throw new Error("No summary found.");
+              return response.json();
+            })
+            .then(data => {
+              document.getElementById("result").innerHTML = `
+                <h2>${data.title}</h2>
+                <p>${data.extract}</p>
+                <a href="${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
+              `;
+              showPopup("Search Complete!", "✅");
+              showSearchHistory();
+            })
+            .catch(() => {
+              document.getElementById("result").innerHTML = `<p>No result found for "${prediction}".</p>`;
+            });
+        });
+      });
     };
   };
   reader.readAsDataURL(input.files[0]);
 }
 
-// Use MobileNet for image classification
-function classifyImage(img) {
-  const classifier = ml5.imageClassifier('MobileNet', () => {
-    classifier.classify(img, (err, results) => {
-      if (err) {
-        closePopup();
-        return alert("Image classification failed.");
-      }
-
-      const topResult = results[0].label;
-      document.getElementById("searchInput").value = topResult;
-      closePopup();
-      searchByText();
-    });
-  });
-}
-
-// Save to localStorage
 function saveSearchHistory(query) {
   let history = JSON.parse(localStorage.getItem("searchHistory")) || [];
   if (!history.includes(query)) {
@@ -71,7 +80,6 @@ function saveSearchHistory(query) {
   }
 }
 
-// Show history
 function showSearchHistory() {
   const history = JSON.parse(localStorage.getItem("searchHistory")) || [];
   const historyHTML = history.map(item => `<li onclick="repeatSearch('${item}')">${item}</li>`).join("");
@@ -83,8 +91,9 @@ function repeatSearch(query) {
   searchByText();
 }
 
-// Modal functions
-function showPopup(message, emoji = "🔍") {
+window.onload = showSearchHistory;
+
+function showPopup(message, emoji = "🖼️") {
   const modal = document.getElementById("popupModal");
   document.getElementById("popupText").innerText = message;
   document.getElementById("popupImage").innerText = emoji;
@@ -94,6 +103,3 @@ function showPopup(message, emoji = "🔍") {
 function closePopup() {
   document.getElementById("popupModal").classList.add("hidden");
 }
-
-// On load
-window.onload = showSearchHistory;
