@@ -31,19 +31,19 @@ async function searchByImage() {
 
   showPopup("Classifying image...", "🤖");
 
-  const img = new Image();
   const reader = new FileReader();
+  const img = new Image();
 
   reader.onload = async function (e) {
     img.src = e.target.result;
     img.onload = async () => {
       const model = await mobilenet.load();
       const predictions = await model.classify(img);
-      const topPrediction = predictions[0]?.className || "Unknown";
+      const label = predictions[0]?.className || "Unknown";
 
-      showPopup(`Image recognized as: ${topPrediction}`, "🧠");
-      document.getElementById("searchInput").value = topPrediction;
-      searchByText(); // Use the recognized label to search Wikipedia
+      showPopup(`Image recognized as: ${label}`, "✅");
+      document.getElementById("searchInput").value = label;
+      searchByText();
     };
   };
 
@@ -83,7 +83,6 @@ function closePopup() {
 
 window.onload = function () {
   showSearchHistory();
-
   document.getElementById("textSearchBtn").addEventListener("click", searchByText);
   document.getElementById("imageSearchBtn").addEventListener("click", searchByImage);
   document.getElementById("popupOkBtn").addEventListener("click", closePopup);
