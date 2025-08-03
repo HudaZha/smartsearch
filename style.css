@@ -1,70 +1,66 @@
-* {
-  box-sizing: border-box;
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-}
-
-body {
-  background-color: #f4f4f4;
-  color: #333;
-  padding: 20px;
+  background: #f4f4f4;
+  display: flex;
+  justify-content: center;
 }
 
 .container {
   max-width: 600px;
-  margin: auto;
-  background: #fff;
+  width: 90%;
   padding: 20px;
-  border-radius: 8px;
+  background: white;
+  margin-top: 40px;
+  border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-h1 {
-  font-size: 24px;
-  margin-bottom: 15px;
+h1, h2 {
   text-align: center;
+  color: #333;
 }
 
 input[type="text"], input[type="file"] {
   width: 100%;
   padding: 10px;
   margin-bottom: 10px;
-  font-size: 16px;
 }
 
 button {
   width: 100%;
   padding: 10px;
-  font-size: 16px;
-  margin-bottom: 10px;
-  background-color: #007BFF;
+  background: #0078D7;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  margin-bottom: 10px;
 }
 
 button:hover {
-  background-color: #0056b3;
+  background: #005bb5;
 }
 
-#result, #searchHistory {
+#result {
   margin-top: 20px;
-  word-wrap: break-word;
-}
-
-ul {
-  list-style-type: none;
-  padding-left: 0;
-}
-
-li {
-  background-color: #efefef;
-  margin-bottom: 5px;
-  padding: 8px;
+  padding: 10px;
+  background: #e9f5ff;
   border-radius: 5px;
+}
+
+#searchHistory ul {
+  list-style: none;
+  padding: 0;
+}
+
+#searchHistory li {
+  background: #eee;
+  margin: 5px 0;
+  padding: 8px;
   cursor: pointer;
+  border-radius: 4px;
 }
 
 .modal {
@@ -75,46 +71,42 @@ li {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1000;
+  align-items: center;
 }
 
 .modal-content {
-  background-color: white;
+  background: white;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 8px;
   text-align: center;
-  max-width: 80%;
-  width: 90%;
 }
 
-.pixel-img {
-  font-size: 32px;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.hidden {
+.modal.hidden {
   display: none;
 }
 
-/* Responsive */
-@media (max-width: 480px) {
-  h1 {
-    font-size: 20px;
-  }
+.pixel-img {
+  font-size: 40px;
+}
 
-  input, button {
-    font-size: 14px;
-  }
-
-  .modal-content {
+/* Mobile responsive */
+@media screen and (max-width: 600px) {
+  .container {
     padding: 15px;
   }
 
-  .pixel-img {
+  input, button {
+    font-size: 16px;
+  }
+
+  #result, #searchHistory {
+    font-size: 14px;
+  }
+
+  h1 {
     font-size: 24px;
   }
 }
+
 
