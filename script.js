@@ -7,7 +7,9 @@ function searchByText() {
 
   saveSearchHistory(query);
 
-  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`)
+  const adjustedQuery = query;
+
+  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(adjustedQuery)}`)
     .then(response => {
       if (!response.ok) throw new Error("No summary found.");
       return response.json();
@@ -21,7 +23,12 @@ function searchByText() {
       showSearchHistory();
     })
     .catch(error => {
-      resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+      resultDiv.innerHTML = `
+        <p>No direct Wikipedia summary found.</p>
+        <a href="https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(query)}" target="_blank">
+          Search "${query}" on Wikipedia
+        </a>
+      `;
     });
 }
 
@@ -37,33 +44,21 @@ function searchByImage() {
 
     const img = new Image();
     img.src = reader.result;
-    img.onload = () => {
-      const classifier = ml5.imageClassifier('MobileNet', () => {
-        classifier.classify(img, (err, results) => {
-          if (err || !results || !results[0]) {
-            document.getElementById("result").innerHTML = "<p>Image recognition failed.</p>";
+    img.onload = function () {
+      const model = ml5.imageClassifier("MobileNet", () => {
+        model.classify(img, (err, results) => {
+          if (err || !results || results.length === 0) {
+            document.getElementById("result").innerHTML = `<p>Image recognition failed.</p>`;
+            showPopup("Image not recognized", "❌");
             return;
           }
 
-          const prediction = results[0].label;
-          saveSearchHistory(prediction);
-          fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(prediction)}`)
-            .then(response => {
-              if (!response.ok) throw new Error("No summary found.");
-              return response.json();
-            })
-            .then(data => {
-              document.getElementById("result").innerHTML = `
-                <h2>${data.title}</h2>
-                <p>${data.extract}</p>
-                <a href="${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
-              `;
-              showPopup("Search Complete!", "✅");
-              showSearchHistory();
-            })
-            .catch(() => {
-              document.getElementById("result").innerHTML = `<p>No result found for "${prediction}".</p>`;
-            });
+          const label = results[0].label;
+          document.getElementById("searchInput").value = label;
+          showPopup(`Identified as "${label}"`, "✅");
+
+          // Run text search with identified label
+          searchByText();
         });
       });
     };
