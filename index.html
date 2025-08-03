@@ -10,12 +10,12 @@
   <div class="container">
     <h1>🔍 SmartSearch</h1>
     <input type="text" id="searchInput" placeholder="Type something to search...">
-    <button onclick="searchByText()">Search</button>
+    <button id="textSearchBtn">Search</button>
 
     <p>OR</p>
 
     <input type="file" id="imageInput" accept="image/*">
-    <button onclick="searchByImage()">Search by Image</button>
+    <button id="imageSearchBtn">Search by Image</button>
 
     <div id="result"></div>
     <div id="searchHistory"></div>
@@ -26,7 +26,7 @@
     <div class="modal-content">
       <span class="pixel-img" id="popupImage">🖼️</span>
       <p id="popupText">Loading...</p>
-      <button onclick="closePopup()">OK</button>
+      <button id="popupOkBtn">OK</button>
     </div>
   </div>
 
