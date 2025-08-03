@@ -87,3 +87,4 @@ window.onload = function () {
   document.getElementById("imageSearchBtn").addEventListener("click", searchByImage);
   document.getElementById("popupOkBtn").addEventListener("click", closePopup);
 };
+
