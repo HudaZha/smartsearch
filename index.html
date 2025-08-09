@@ -2,27 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartSearch</title>
   <link rel="stylesheet" href="style.css">
+  <!-- ML5.js for image recognition -->
   <script src="https://cdn.jsdelivr.net/npm/ml5@latest/dist/ml5.min.js"></script>
 </head>
 <body>
   <div class="container">
     <h1>🔍 SmartSearch</h1>
 
-    <input type="text" id="searchInput" placeholder="Type something to search...">
-    <button onclick="searchByText()">Search</button>
+    <!-- Text Search -->
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="Type something to search...">
+      <button onclick="searchByText()">Search</button>
+    </div>
 
     <p>OR</p>
 
-    <input type="file" id="imageInput" accept="image/*">
-    <button onclick="searchByImage()">Search by Image</button>
+    <!-- Image Search -->
+    <div class="search-row">
+      <input type="file" id="imageInput" accept="image/*">
+      <button onclick="searchByImage()">Search by Image</button>
+    </div>
 
+    <!-- Search Results -->
     <div id="result"></div>
+
+    <!-- Search History -->
     <div id="searchHistory"></div>
   </div>
 
-  <!-- Pop-up Modal -->
+  <!-- Pop-up Modal for Image Recognition -->
   <div id="popupModal" class="modal hidden">
     <div class="modal-content">
       <span class="pixel-img" id="popupImage">🖼️</span>
