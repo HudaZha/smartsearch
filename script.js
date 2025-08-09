@@ -1,3 +1,6 @@
+// Backend URL from Render deployment
+const backendURL = "https://<YOUR_BACKEND_ON_RENDER>.onrender.com"; // Replace with actual Render backend URL
+
 function searchByText() {
   const query = document.getElementById("searchInput").value.trim();
   if (!query) return alert("Please enter a search term.");
@@ -7,28 +10,35 @@ function searchByText() {
 
   saveSearchHistory(query);
 
-  const adjustedQuery = query;
-
-  fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(adjustedQuery)}`)
-    .then(response => {
-      if (!response.ok) throw new Error("No summary found.");
-      return response.json();
+  fetch(`${backendURL}/search?query=${encodeURIComponent(query)}`)
+    .then(res => {
+      if (!res.ok) throw new Error("Error fetching search results");
+      return res.json();
     })
     .then(data => {
-      resultDiv.innerHTML = `
-        <h2>${data.title}</h2>
-        <p>${data.extract}</p>
-        <a href="${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
-      `;
+      const results = data.results || [];
+      if (results.length === 0) {
+        resultDiv.innerHTML = `<p>No results found.</p>`;
+        return;
+      }
+
+      let html = `<h3>Search Results for "${query}"</h3><ul>`;
+      results.forEach(r => {
+        html += `
+          <li>
+            <a href="${r.link}" target="_blank" rel="noopener noreferrer">${r.title}</a>
+            <small>${r.snippet || ""}</small>
+          </li>
+        `;
+      });
+      html += `</ul>`;
+      resultDiv.innerHTML = html;
+
       showSearchHistory();
     })
-    .catch(error => {
-      resultDiv.innerHTML = `
-        <p>No direct Wikipedia summary found.</p>
-        <a href="https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(query)}" target="_blank">
-          Search "${query}" on Wikipedia
-        </a>
-      `;
+    .catch(err => {
+      console.error(err);
+      resultDiv.innerHTML = `<p>Failed to fetch results. Check backend connection.</p>`;
     });
 }
 
@@ -57,7 +67,7 @@ function searchByImage() {
           document.getElementById("searchInput").value = label;
           showPopup(`Identified as "${label}"`, "✅");
 
-          // Run text search with identified label
+          // Run backend text search with identified label
           searchByText();
         });
       });
@@ -77,6 +87,11 @@ function saveSearchHistory(query) {
 
 function showSearchHistory() {
   const history = JSON.parse(localStorage.getItem("searchHistory")) || [];
+  if (history.length === 0) {
+    document.getElementById("searchHistory").innerHTML = "";
+    return;
+  }
+
   const historyHTML = history.map(item => `<li onclick="repeatSearch('${item}')">${item}</li>`).join("");
   document.getElementById("searchHistory").innerHTML = `<h3>Recent Searches</h3><ul>${historyHTML}</ul>`;
 }
