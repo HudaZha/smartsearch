@@ -1,6 +1,10 @@
-// Backend URL from Render deployment
-const backendURL = "https://<YOUR_BACKEND_ON_RENDER>.onrender.com"; // Replace with actual Render backend URL
+// ===== CONFIG =====
+const backendURL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000" // Local dev
+    : "https://<your-backend>.onrender.com"; // Replace with your Render backend URL
 
+// ===== Search by Text =====
 function searchByText() {
   const query = document.getElementById("searchInput").value.trim();
   if (!query) return alert("Please enter a search term.");
@@ -11,37 +15,38 @@ function searchByText() {
   saveSearchHistory(query);
 
   fetch(`${backendURL}/search?query=${encodeURIComponent(query)}`)
-    .then(res => {
-      if (!res.ok) throw new Error("Error fetching search results");
-      return res.json();
-    })
-    .then(data => {
-      const results = data.results || [];
-      if (results.length === 0) {
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.error) {
+        resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+        return;
+      }
+      if (!data.results || data.results.length === 0) {
         resultDiv.innerHTML = `<p>No results found.</p>`;
         return;
       }
 
-      let html = `<h3>Search Results for "${query}"</h3><ul>`;
-      results.forEach(r => {
-        html += `
-          <li>
-            <a href="${r.link}" target="_blank" rel="noopener noreferrer">${r.title}</a>
-            <small>${r.snippet || ""}</small>
-          </li>
-        `;
-      });
-      html += `</ul>`;
-      resultDiv.innerHTML = html;
+      // Show multiple search results like Google
+      resultDiv.innerHTML = data.results
+        .map(
+          (item) => `
+          <div class="search-result">
+            <a href="${item.link}" target="_blank"><h3>${item.title}</h3></a>
+            <p>${item.snippet}</p>
+          </div>
+        `
+        )
+        .join("");
 
       showSearchHistory();
     })
-    .catch(err => {
+    .catch((err) => {
       console.error(err);
-      resultDiv.innerHTML = `<p>Failed to fetch results. Check backend connection.</p>`;
+      resultDiv.innerHTML = `<p>Something went wrong while fetching results.</p>`;
     });
 }
 
+// ===== Search by Image =====
 function searchByImage() {
   const input = document.getElementById("imageInput");
   if (!input.files[0]) return alert("Please upload an image.");
@@ -67,7 +72,6 @@ function searchByImage() {
           document.getElementById("searchInput").value = label;
           showPopup(`Identified as "${label}"`, "✅");
 
-          // Run backend text search with identified label
           searchByText();
         });
       });
@@ -76,6 +80,7 @@ function searchByImage() {
   reader.readAsDataURL(input.files[0]);
 }
 
+// ===== Search History =====
 function saveSearchHistory(query) {
   let history = JSON.parse(localStorage.getItem("searchHistory")) || [];
   if (!history.includes(query)) {
@@ -87,12 +92,9 @@ function saveSearchHistory(query) {
 
 function showSearchHistory() {
   const history = JSON.parse(localStorage.getItem("searchHistory")) || [];
-  if (history.length === 0) {
-    document.getElementById("searchHistory").innerHTML = "";
-    return;
-  }
-
-  const historyHTML = history.map(item => `<li onclick="repeatSearch('${item}')">${item}</li>`).join("");
+  const historyHTML = history
+    .map((item) => `<li onclick="repeatSearch('${item}')">${item}</li>`)
+    .join("");
   document.getElementById("searchHistory").innerHTML = `<h3>Recent Searches</h3><ul>${historyHTML}</ul>`;
 }
 
@@ -103,6 +105,7 @@ function repeatSearch(query) {
 
 window.onload = showSearchHistory;
 
+// ===== Popup Handling =====
 function showPopup(message, emoji = "🖼️") {
   const modal = document.getElementById("popupModal");
   document.getElementById("popupText").innerText = message;
@@ -113,3 +116,4 @@ function showPopup(message, emoji = "🖼️") {
 function closePopup() {
   document.getElementById("popupModal").classList.add("hidden");
 }
+
