@@ -2,12 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SmartSearch with Firebase</title>
+  <title>SmartSearch</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/ml5@latest/dist/ml5.min.js"></script>
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div class="container">
@@ -25,6 +22,39 @@
     <div id="searchHistory"></div>
   </div>
 
+  <!-- Pop-up Modal -->
+  <div id="popupModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="pixel-img" id="popupImage">🖼️</span>
+      <p id="popupText">Loading...</p>
+      <button onclick="closePopup()">OK</button>
+    </div>
+  </div>
+
+  <!-- ✅ Firebase Setup (must be before script.js) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyA14uJyi2kHNzQlVKbJjPfVmItxpgLmol4",
+      authDomain: "smartsearch-bd826.firebaseapp.com",
+      projectId: "smartsearch-bd826",
+      storageBucket: "smartsearch-bd826.firebasestorage.app",
+      messagingSenderId: "880286812500",
+      appId: "1:880286812500:web:5f0cb75cdd544a7b1860c1"
+    };
+
+    // Initialize Firebase + Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Make Firestore available in script.js
+    window.db = db;
+  </script>
+
+  <!-- ✅ Your app logic -->
   <script src="script.js"></script>
 </body>
 </html>
