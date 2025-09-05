@@ -50,8 +50,6 @@ function searchByText() {
   const query = document.getElementById("searchInput").value.trim();
   if (!query) return alert("Please enter a search term.");
 
-  showPopup("Searching text query...", "⌨️");
-
   const resultDiv = document.getElementById("result");
   resultDiv.innerHTML = "<p>Loading...</p>";
 
@@ -73,10 +71,9 @@ function searchByText() {
         <a href="${result.link}" target="_blank">Read more on Wikipedia</a>
       `;
 
+      // Save search result to Firestore
       saveSearchToDB(query, [result]);
       showSearchHistory();
-
-      showPopup("Search completed successfully!", "✅");
     })
     .catch(() => {
       resultDiv.innerHTML = `
@@ -85,7 +82,10 @@ function searchByText() {
           Search "${query}" on Wikipedia
         </a>
       `;
-      showPopup("No results found", "❌");
+
+      // Save failed search as "no result"
+      saveSearchToDB(query, [{ title: "No result found", snippet: "", link: "" }]);
+      showSearchHistory();
     });
 }
 
@@ -108,18 +108,28 @@ function searchByImage() {
           if (err || !results || results.length === 0) {
             document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
             showPopup("Image not recognized", "❌");
+
+            // Save unrecognized image to Firestore
+            saveSearchToDB("Unrecognized Image", [{ title: "No result found", snippet: "", link: "" }]);
+            showSearchHistory();
             return;
           }
 
           const label = results[0].label;
+          const confidence = results[0].confidence; // value between 0 and 1
 
-          // Check for irrelevant or generic labels
-          if (!label || label.toLowerCase().includes("artifact") || label.toLowerCase().includes("drawing")) {
+          // If confidence is too low (< 30%), treat as unrecognized
+          if (!label || confidence < 0.3) {
             document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
             showPopup("No relevant result found", "⚠️");
+
+            // Save unrecognized image to Firestore
+            saveSearchToDB("Unrecognized Image", [{ title: "No result found", snippet: "", link: "" }]);
+            showSearchHistory();
             return;
           }
 
+          // If valid label found → continue with text search
           document.getElementById("searchInput").value = label;
           showPopup(`Identified as "${label}"`, "✅");
 
