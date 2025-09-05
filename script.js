@@ -50,6 +50,8 @@ function searchByText() {
   const query = document.getElementById("searchInput").value.trim();
   if (!query) return alert("Please enter a search term.");
 
+  showPopup("Searching text query...", "⌨️");
+
   const resultDiv = document.getElementById("result");
   resultDiv.innerHTML = "<p>Loading...</p>";
 
@@ -71,9 +73,10 @@ function searchByText() {
         <a href="${result.link}" target="_blank">Read more on Wikipedia</a>
       `;
 
-      // Save search result to Firestore
       saveSearchToDB(query, [result]);
       showSearchHistory();
+
+      showPopup("Search completed successfully!", "✅");
     })
     .catch(() => {
       resultDiv.innerHTML = `
@@ -82,6 +85,7 @@ function searchByText() {
           Search "${query}" on Wikipedia
         </a>
       `;
+      showPopup("No results found", "❌");
     });
 }
 
@@ -102,12 +106,20 @@ function searchByImage() {
       const model = ml5.imageClassifier("MobileNet", () => {
         model.classify(img, (err, results) => {
           if (err || !results || results.length === 0) {
-            document.getElementById("result").innerHTML = `<p>Image recognition failed.</p>`;
+            document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
             showPopup("Image not recognized", "❌");
             return;
           }
 
           const label = results[0].label;
+
+          // Check for irrelevant or generic labels
+          if (!label || label.toLowerCase().includes("artifact") || label.toLowerCase().includes("drawing")) {
+            document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
+            showPopup("No relevant result found", "⚠️");
+            return;
+          }
+
           document.getElementById("searchInput").value = label;
           showPopup(`Identified as "${label}"`, "✅");
 
