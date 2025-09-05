@@ -1,4 +1,4 @@
-// === SEARCH FUNCTIONS WITH FIRESTORE ===
+// === FIRESTORE SEARCH FUNCTIONS ===
 
 // Save search result into Firestore
 async function saveSearchToDB(query, results) {
@@ -88,44 +88,99 @@ function searchByText() {
     });
 }
 
+// === IMAGE SEARCH FUNCTIONS WITH PRELOADED MOBILENET ===
+
+let classifier;
+
+// Preload MobileNet once at page load
+window.addEventListener("DOMContentLoaded", () => {
+  showPopup("Loading MobileNet model...", "⏳");
+
+  ml5.imageClassifier("MobileNet")
+    .then(model => {
+      classifier = model;
+      console.log("✅ MobileNet preloaded and ready");
+      showPopup("MobileNet loaded successfully", "✅", 2000);
+    })
+    .catch(err => {
+      console.error("❌ MobileNet preload error:", err);
+      showPopup("Failed to load MobileNet", "❌", 3000);
+    });
+
+  // Add event listener to image input
+  const imageInput = document.getElementById("imageInput");
+  if (imageInput) {
+    imageInput.addEventListener("change", searchByImage);
+  }
+
+  // Load search history
+  showSearchHistory();
+});
+
 // Perform image search
 function searchByImage() {
   const input = document.getElementById("imageInput");
-  if (!input.files[0]) return alert("Please upload an image.");
+  if (!input || !input.files || !input.files[0]) {
+    alert("Please upload an image.");
+    return;
+  }
 
-  showPopup("Uploading image...", "📤");
+  if (!classifier) {
+    showPopup("Model not loaded yet. Please wait.", "⏳");
+    return;
+  }
+
+  showPopup("Analyzing image...", "🔎");
 
   const reader = new FileReader();
   reader.onload = function () {
-    showPopup("Analyzing image...", "🔎");
-
     const img = new Image();
     img.src = reader.result;
+
     img.onload = function () {
-      const model = ml5.imageClassifier("MobileNet", () => {
-        model.classify(img, (err, results) => {
-          if (err || !results || results.length === 0) {
+      console.log("✅ Image loaded for classification");
+
+      classifier.classify(img)
+        .then(results => {
+          console.log("🔎 Classification results:", results);
+
+          if (!results || results.length === 0) {
             handleUnrecognizedImage();
             return;
           }
 
-          const label = results[0].label || "";
-          const confidence = results[0].confidence || 0;
+          const top = results[0];
+          const label = top.label || "";
+          const confidence = top.confidence || 0;
 
-          // If no label or confidence is too low (<30%)
           if (!label || confidence < 0.3) {
+            console.warn("⚠️ Low confidence", confidence);
             handleUnrecognizedImage();
             return;
           }
 
-          // ✅ Valid label → Continue with text search
           document.getElementById("searchInput").value = label;
-          showPopup(`Identified as "${label}"`, "✅");
+          showPopup(`Identified as "${label}" (${(confidence * 100).toFixed(0)}%)`, "✅");
+
           searchByText();
+        })
+        .catch(err => {
+          console.error("❌ Classification error:", err);
+          handleUnrecognizedImage();
         });
-      });
+    };
+
+    img.onerror = function (e) {
+      console.error("❌ Image failed to load:", e);
+      handleUnrecognizedImage();
     };
   };
+
+  reader.onerror = function (e) {
+    console.error("❌ FileReader error:", e);
+    showPopup("Image upload failed", "❌");
+  };
+
   reader.readAsDataURL(input.files[0]);
 }
 
@@ -134,7 +189,6 @@ function handleUnrecognizedImage() {
   document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
   showPopup("No relevant result found", "❌");
 
-  // Save as "Unrecognized Image" to Firestore
   saveSearchToDB("Unrecognized Image", [{ title: "No result found", snippet: "", link: "" }]);
   showSearchHistory();
 }
@@ -146,17 +200,14 @@ function repeatSearch(query) {
 }
 
 // Popup modal
-function showPopup(message, emoji = "🖼️") {
+function showPopup(message, emoji = "🖼️", timeout = 0) {
   const modal = document.getElementById("popupModal");
   document.getElementById("popupText").innerText = message;
   document.getElementById("popupImage").innerText = emoji;
   modal.classList.remove("hidden");
+  if (timeout > 0) setTimeout(closePopup, timeout);
 }
 
 function closePopup() {
   document.getElementById("popupModal").classList.add("hidden");
 }
-
-// Load history on startup
-window.onload = showSearchHistory;
-
