@@ -71,7 +71,7 @@ function searchByText() {
         <a href="${result.link}" target="_blank">Read more on Wikipedia</a>
       `;
 
-      // Save search result to Firestore
+      // Save to Firestore
       saveSearchToDB(query, [result]);
       showSearchHistory();
     })
@@ -83,7 +83,6 @@ function searchByText() {
         </a>
       `;
 
-      // Save failed search as "no result"
       saveSearchToDB(query, [{ title: "No result found", snippet: "", link: "" }]);
       showSearchHistory();
     });
@@ -98,7 +97,7 @@ function searchByImage() {
 
   const reader = new FileReader();
   reader.onload = function () {
-    showPopup("Searching with image...", "🔎");
+    showPopup("Analyzing image...", "🔎");
 
     const img = new Image();
     img.src = reader.result;
@@ -106,39 +105,38 @@ function searchByImage() {
       const model = ml5.imageClassifier("MobileNet", () => {
         model.classify(img, (err, results) => {
           if (err || !results || results.length === 0) {
-            document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
-            showPopup("Image not recognized", "❌");
-
-            // Save unrecognized image to Firestore
-            saveSearchToDB("Unrecognized Image", [{ title: "No result found", snippet: "", link: "" }]);
-            showSearchHistory();
+            handleUnrecognizedImage();
             return;
           }
 
-          const label = results[0].label;
-          const confidence = results[0].confidence; // value between 0 and 1
+          const label = results[0].label || "";
+          const confidence = results[0].confidence || 0;
 
-          // If confidence is too low (< 30%), treat as unrecognized
+          // If no label or confidence is too low (<30%)
           if (!label || confidence < 0.3) {
-            document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
-            showPopup("No relevant result found", "⚠️");
-
-            // Save unrecognized image to Firestore
-            saveSearchToDB("Unrecognized Image", [{ title: "No result found", snippet: "", link: "" }]);
-            showSearchHistory();
+            handleUnrecognizedImage();
             return;
           }
 
-          // If valid label found → continue with text search
+          // ✅ Valid label → Continue with text search
           document.getElementById("searchInput").value = label;
           showPopup(`Identified as "${label}"`, "✅");
-
           searchByText();
         });
       });
     };
   };
   reader.readAsDataURL(input.files[0]);
+}
+
+// Handle unrecognized images
+function handleUnrecognizedImage() {
+  document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
+  showPopup("No relevant result found", "❌");
+
+  // Save as "Unrecognized Image" to Firestore
+  saveSearchToDB("Unrecognized Image", [{ title: "No result found", snippet: "", link: "" }]);
+  showSearchHistory();
 }
 
 // Repeat a search from history
