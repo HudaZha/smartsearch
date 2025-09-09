@@ -31,12 +31,11 @@
     </div>
   </div>
 
-  <!-- ✅ Firebase Setup (must be before script.js) -->
+  <!-- Firebase Setup -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getFirestore } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyA14uJyi2kHNzQlVKbJjPfVmItxpgLmol4",
       authDomain: "smartsearch-bd826.firebaseapp.com",
@@ -46,15 +45,14 @@
       appId: "1:880286812500:web:5f0cb75cdd544a7b1860c1"
     };
 
-    // Initialize Firebase + Firestore
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Make Firestore available in script.js
     window.db = db;
   </script>
 
-  <!-- ✅ Your app logic -->
-  <script src="script.js"></script>
+  <!-- Main Script -->
+  <script type="module" src="script.js"></script>
 </body>
 </html>
+
