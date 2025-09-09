@@ -31,12 +31,11 @@
     </div>
   </div>
 
-  <!-- Firebase + Firestore -->
+  <!-- Firebase Setup (minimal changes) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyA14uJyi2kHNzQlVKbJjPfVmItxpgLmol4",
       authDomain: "smartsearch-bd826.firebaseapp.com",
@@ -46,55 +45,15 @@
       appId: "1:880286812500:web:5f0cb75cdd544a7b1860c1"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-
-    // Initialize Firestore
     const db = getFirestore(app);
+
+    // Make Firestore available globally
     window.db = db;
-
-    // ===== Firestore functions =====
-
-    async function saveSearchToDB(queryText, results) {
-      try {
-        await addDoc(collection(db, "searches"), {
-          query: queryText,
-          results,
-          timestamp: serverTimestamp()
-        });
-        console.log("✅ Search saved:", queryText);
-        showSearchHistory();
-      } catch (err) {
-        console.error("❌ Failed to save search:", err);
-      }
-    }
-
-    async function showSearchHistory() {
-      try {
-        const q = query(collection(db, "searches"), orderBy("timestamp", "desc"), limit(5));
-        const snapshot = await getDocs(q);
-
-        let html = "<h3>Recent Searches</h3><ul>";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          html += `<li onclick="repeatSearch('${data.query}')">${data.query}</li>`;
-        });
-        html += "</ul>";
-
-        document.getElementById("searchHistory").innerHTML = html;
-      } catch (err) {
-        console.error("❌ Error loading history:", err);
-      }
-    }
-
-    window.saveSearchToDB = saveSearchToDB;
-    window.showSearchHistory = showSearchHistory;
-
+    window.fsImports = { collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp };
   </script>
 
-  <!-- Main Script -->
-  <script type="module" src="script.js"></script>
+  <!-- Your app logic -->
+  <script src="script.js"></script>
 </body>
 </html>
-
-
