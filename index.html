@@ -4,57 +4,129 @@
   <meta charset="UTF-8">
   <title>SmartSearch</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/ml5@latest/dist/ml5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ml5/0.12.2/ml5.min.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>🔍 SmartSearch</h1>
+  <h1>🔍 SmartSearch</h1>
 
-    <input type="text" id="searchInput" placeholder="Type something to search...">
-    <button onclick="searchByText()">Search</button>
+  <!-- AUTH SECTION -->
+  <div id="authSection">
+    <h2>User Login</h2>
+    <input type="email" id="emailInput" placeholder="Enter Email"><br>
+    <input type="password" id="passwordInput" placeholder="Enter Password"><br>
+    <button onclick="signUp()">Sign Up</button>
+    <button onclick="login()">Login</button>
+    <button onclick="googleLogin()">Login with Google</button>
+    <p id="authStatus"></p>
+  </div>
+
+  <!-- MAIN APP SECTION -->
+  <div id="appSection" class="hidden">
+    <button onclick="logout()">🚪 Logout</button>
+
+    <h2>Search</h2>
+    <input type="text" id="searchInput" placeholder="Enter search term...">
+    <button onclick="searchByText()">🔍 Search</button>
 
     <p>OR</p>
-
     <input type="file" id="imageInput" accept="image/*">
-    <button onclick="searchByImage()">Search by Image</button>
+    <button onclick="searchByImage()">📷 Search by Image</button>
 
     <div id="result"></div>
     <div id="searchHistory"></div>
   </div>
 
-  <!-- Pop-up Modal -->
-  <div id="popupModal" class="modal hidden">
-    <div class="modal-content">
-      <span class="pixel-img" id="popupImage">🖼️</span>
-      <p id="popupText">Loading...</p>
+  <!-- POPUP MODAL -->
+  <div id="popupModal" class="hidden">
+    <div class="popup-content">
+      <span id="popupImage"></span>
+      <p id="popupText"></p>
       <button onclick="closePopup()">OK</button>
     </div>
   </div>
 
-  <!-- ✅ Firebase Setup (must be before script.js) -->
+  <!-- FIREBASE SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { 
+      getAuth, createUserWithEmailAndPassword, 
+      signInWithEmailAndPassword, signOut, 
+      GoogleAuthProvider, signInWithPopup, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getFirestore } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // Your Firebase config
+    // 🔑 Your Firebase Config (replace with your own)
     const firebaseConfig = {
-      apiKey: "AIzaSyA14uJyi2kHNzQlVKbJjPfVmItxpgLmol4",
-      authDomain: "smartsearch-bd826.firebaseapp.com",
-      projectId: "smartsearch-bd826",
-      storageBucket: "smartsearch-bd826.firebasestorage.app",
-      messagingSenderId: "880286812500",
-      appId: "1:880286812500:web:5f0cb75cdd544a7b1860c1"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MSG_ID",
+      appId: "YOUR_APP_ID"
     };
 
-    // Initialize Firebase + Firestore
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
 
-    // Make Firestore available in script.js
     window.db = db;
+    window.auth = auth;
+    window.provider = provider;
+
+    // === AUTH FUNCTIONS ===
+    window.signUp = async function () {
+      const email = document.getElementById("emailInput").value;
+      const password = document.getElementById("passwordInput").value;
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        document.getElementById("authStatus").innerText = "✅ Account created! Please login.";
+      } catch (error) {
+        document.getElementById("authStatus").innerText = "❌ " + error.message;
+      }
+    };
+
+    window.login = async function () {
+      const email = document.getElementById("emailInput").value;
+      const password = document.getElementById("passwordInput").value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        document.getElementById("authStatus").innerText = "✅ Logged in!";
+      } catch (error) {
+        document.getElementById("authStatus").innerText = "❌ " + error.message;
+      }
+    };
+
+    window.googleLogin = async function () {
+      try {
+        await signInWithPopup(auth, provider);
+        document.getElementById("authStatus").innerText = "✅ Google Login Successful!";
+      } catch (error) {
+        document.getElementById("authStatus").innerText = "❌ " + error.message;
+      }
+    };
+
+    window.logout = async function () {
+      await signOut(auth);
+      document.getElementById("authStatus").innerText = "🚪 Logged out!";
+    };
+
+    // Handle auth state change
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById("appSection").classList.remove("hidden");
+        document.getElementById("authSection").classList.add("hidden");
+        showSearchHistory(); 
+      } else {
+        document.getElementById("appSection").classList.add("hidden");
+        document.getElementById("authSection").classList.remove("hidden");
+      }
+    });
   </script>
 
-  <!-- ✅ Your app logic -->
+  <!-- MAIN SCRIPT -->
   <script src="script.js"></script>
 </body>
 </html>
