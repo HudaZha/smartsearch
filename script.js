@@ -1,35 +1,32 @@
 // === FIRESTORE SEARCH FUNCTIONS ===
-
-// Save search result into Firestore
 async function saveSearchToDB(query, results) {
   try {
-    const db = window.db; // from index.html
-    if (!db) {
-      console.error("❌ Firestore not initialized");
-      return;
-    }
+    const db = window.db;
+    const user = window.auth.currentUser;
+    if (!user) return;
 
     const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
 
-    await addDoc(collection(db, "searches"), {
+    await addDoc(collection(db, "users", user.uid, "searches"), {
       query,
       results,
       timestamp: serverTimestamp()
     });
-
-    console.log("✅ Saved search to Firestore:", query);
+    console.log("✅ Saved search for user:", user.email);
   } catch (err) {
     console.error("❌ Error saving to Firestore:", err);
   }
 }
 
-// Fetch last 5 searches from Firestore
 async function showSearchHistory() {
   try {
     const db = window.db;
+    const user = window.auth.currentUser;
+    if (!user) return;
+
     const { collection, getDocs, query, orderBy, limit } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
 
-    const q = query(collection(db, "searches"), orderBy("timestamp", "desc"), limit(5));
+    const q = query(collection(db, "users", user.uid, "searches"), orderBy("timestamp", "desc"), limit(5));
     const querySnapshot = await getDocs(q);
 
     let historyHTML = "<h3>Recent Searches</h3><ul>";
@@ -45,10 +42,10 @@ async function showSearchHistory() {
   }
 }
 
-// Perform text search
+// === SEARCH FUNCTIONS ===
 function searchByText() {
   const query = document.getElementById("searchInput").value.trim();
-  if (!query) return alert("Please enter a search term.");
+  if (!query) return showPopup("Please enter a search term", "⚠️");
 
   const resultDiv = document.getElementById("result");
   resultDiv.innerHTML = "<p>Loading...</p>";
@@ -71,141 +68,56 @@ function searchByText() {
         <a href="${result.link}" target="_blank">Read more on Wikipedia</a>
       `;
 
-      // Save to Firestore
       saveSearchToDB(query, [result]);
       showSearchHistory();
     })
     .catch(() => {
-      resultDiv.innerHTML = `
-        <p>No direct Wikipedia summary found.</p>
-        <a href="https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(query)}" target="_blank">
-          Search "${query}" on Wikipedia
-        </a>
-      `;
-
-      saveSearchToDB(query, [{ title: "No result found", snippet: "", link: "" }]);
-      showSearchHistory();
+      resultDiv.innerHTML = `<p>No summary found for "${query}".</p>`;
     });
 }
 
-// === IMAGE SEARCH FUNCTIONS WITH PRELOADED MOBILENET ===
-
-let classifier;
-
-// Preload MobileNet once at page load
-window.addEventListener("DOMContentLoaded", () => {
-  showPopup("Loading MobileNet model...", "⏳");
-
-  ml5.imageClassifier("MobileNet")
-    .then(model => {
-      classifier = model;
-      console.log("✅ MobileNet preloaded and ready");
-      showPopup("MobileNet loaded successfully", "✅", 2000);
-    })
-    .catch(err => {
-      console.error("❌ MobileNet preload error:", err);
-      showPopup("Failed to load MobileNet", "❌", 3000);
-    });
-
-  // Add event listener to image input
-  const imageInput = document.getElementById("imageInput");
-  if (imageInput) {
-    imageInput.addEventListener("change", searchByImage);
-  }
-
-  // Load search history
-  showSearchHistory();
-});
-
-// Perform image search
 function searchByImage() {
   const input = document.getElementById("imageInput");
-  if (!input || !input.files || !input.files[0]) {
-    alert("Please upload an image.");
-    return;
-  }
+  if (!input.files[0]) return showPopup("Please upload an image", "⚠️");
 
-  if (!classifier) {
-    showPopup("Model not loaded yet. Please wait.", "⏳");
-    return;
-  }
-
-  showPopup("Analyzing image...", "🔎");
+  showPopup("Uploading image...", "📤");
 
   const reader = new FileReader();
   reader.onload = function () {
+    showPopup("Searching with image...", "🔎");
     const img = new Image();
     img.src = reader.result;
-
     img.onload = function () {
-      console.log("✅ Image loaded for classification");
-
-      classifier.classify(img)
-        .then(results => {
-          console.log("🔎 Classification results:", results);
-
-          if (!results || results.length === 0) {
-            handleUnrecognizedImage();
+      const model = ml5.imageClassifier("MobileNet", () => {
+        model.classify(img, (err, results) => {
+          if (err || !results || results.length === 0) {
+            document.getElementById("result").innerHTML = `<p>Image recognition failed.</p>`;
+            showPopup("Image not recognized", "❌");
             return;
           }
 
-          const top = results[0];
-          const label = top.label || "";
-          const confidence = top.confidence || 0;
-
-          if (!label || confidence < 0.3) {
-            console.warn("⚠️ Low confidence", confidence);
-            handleUnrecognizedImage();
-            return;
-          }
-
+          const label = results[0].label;
           document.getElementById("searchInput").value = label;
-          showPopup(`Identified as "${label}" (${(confidence * 100).toFixed(0)}%)`, "✅");
-
+          showPopup(`Identified as "${label}"`, "✅");
           searchByText();
-        })
-        .catch(err => {
-          console.error("❌ Classification error:", err);
-          handleUnrecognizedImage();
         });
-    };
-
-    img.onerror = function (e) {
-      console.error("❌ Image failed to load:", e);
-      handleUnrecognizedImage();
+      });
     };
   };
-
-  reader.onerror = function (e) {
-    console.error("❌ FileReader error:", e);
-    showPopup("Image upload failed", "❌");
-  };
-
   reader.readAsDataURL(input.files[0]);
 }
 
-// Handle unrecognized images
-function handleUnrecognizedImage() {
-  document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
-  showPopup("No relevant result found", "❌");
-
-  saveSearchToDB("Unrecognized Image", [{ title: "No result found", snippet: "", link: "" }]);
-  showSearchHistory();
-}
-
-// Repeat a search from history
 function repeatSearch(query) {
   document.getElementById("searchInput").value = query;
   searchByText();
 }
 
-// Popup modal
-function showPopup(message, emoji = "🖼️", timeout = 0) {
+// === POPUP ===
+function showPopup(message, emoji = "ℹ️") {
   const modal = document.getElementById("popupModal");
   document.getElementById("popupText").innerText = message;
   document.getElementById("popupImage").innerText = emoji;
   modal.classList.remove("hidden");
-  if (timeout > 0) setTimeout(closePopup, timeout);
 }
 
 function closePopup() {
