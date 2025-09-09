@@ -1,12 +1,15 @@
-// ===== Firestore search functions =====
+// === FIRESTORE SEARCH FUNCTIONS ===
+
+// Save search result into Firestore
 async function saveSearchToDB(query, results) {
   try {
-    const { collection, addDoc, serverTimestamp } = window.fsImports;
-    const db = window.db;
+    const db = window.db; // from index.html
     if (!db) {
       console.error("❌ Firestore not initialized");
       return;
     }
+
+    const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
 
     await addDoc(collection(db, "searches"), {
       query,
@@ -15,22 +18,22 @@ async function saveSearchToDB(query, results) {
     });
 
     console.log("✅ Saved search to Firestore:", query);
-    showSearchHistory();
   } catch (err) {
     console.error("❌ Error saving to Firestore:", err);
   }
 }
 
+// Fetch last 5 searches from Firestore
 async function showSearchHistory() {
   try {
-    const { collection, getDocs, query, orderBy, limit } = window.fsImports;
     const db = window.db;
+    const { collection, getDocs, query, orderBy, limit } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
 
     const q = query(collection(db, "searches"), orderBy("timestamp", "desc"), limit(5));
-    const snapshot = await getDocs(q);
+    const querySnapshot = await getDocs(q);
 
     let historyHTML = "<h3>Recent Searches</h3><ul>";
-    snapshot.forEach((doc) => {
+    querySnapshot.forEach((doc) => {
       const data = doc.data();
       historyHTML += `<li onclick="repeatSearch('${data.query}')">${data.query}</li>`;
     });
@@ -42,7 +45,7 @@ async function showSearchHistory() {
   }
 }
 
-// ===== Text search =====
+// Perform text search
 function searchByText() {
   const query = document.getElementById("searchInput").value.trim();
   if (!query) return alert("Please enter a search term.");
@@ -68,6 +71,7 @@ function searchByText() {
         <a href="${result.link}" target="_blank">Read more on Wikipedia</a>
       `;
 
+      // Save to Firestore
       saveSearchToDB(query, [result]);
       showSearchHistory();
     })
@@ -84,9 +88,11 @@ function searchByText() {
     });
 }
 
-// ===== Image search with MobileNet =====
+// === IMAGE SEARCH FUNCTIONS WITH PRELOADED MOBILENET ===
+
 let classifier;
 
+// Preload MobileNet once at page load
 window.addEventListener("DOMContentLoaded", () => {
   showPopup("Loading MobileNet model...", "⏳");
 
@@ -101,14 +107,17 @@ window.addEventListener("DOMContentLoaded", () => {
       showPopup("Failed to load MobileNet", "❌", 3000);
     });
 
+  // Add event listener to image input
   const imageInput = document.getElementById("imageInput");
   if (imageInput) {
     imageInput.addEventListener("change", searchByImage);
   }
 
+  // Load search history
   showSearchHistory();
 });
 
+// Perform image search
 function searchByImage() {
   const input = document.getElementById("imageInput");
   if (!input || !input.files || !input.files[0]) {
@@ -129,8 +138,12 @@ function searchByImage() {
     img.src = reader.result;
 
     img.onload = function () {
+      console.log("✅ Image loaded for classification");
+
       classifier.classify(img)
         .then(results => {
+          console.log("🔎 Classification results:", results);
+
           if (!results || results.length === 0) {
             handleUnrecognizedImage();
             return;
@@ -141,6 +154,7 @@ function searchByImage() {
           const confidence = top.confidence || 0;
 
           if (!label || confidence < 0.3) {
+            console.warn("⚠️ Low confidence", confidence);
             handleUnrecognizedImage();
             return;
           }
@@ -170,6 +184,7 @@ function searchByImage() {
   reader.readAsDataURL(input.files[0]);
 }
 
+// Handle unrecognized images
 function handleUnrecognizedImage() {
   document.getElementById("result").innerHTML = `<p>No relevant result found for this image.</p>`;
   showPopup("No relevant result found", "❌");
@@ -178,7 +193,13 @@ function handleUnrecognizedImage() {
   showSearchHistory();
 }
 
-// ===== Popup modal =====
+// Repeat a search from history
+function repeatSearch(query) {
+  document.getElementById("searchInput").value = query;
+  searchByText();
+}
+
+// Popup modal
 function showPopup(message, emoji = "🖼️", timeout = 0) {
   const modal = document.getElementById("popupModal");
   document.getElementById("popupText").innerText = message;
@@ -190,9 +211,3 @@ function showPopup(message, emoji = "🖼️", timeout = 0) {
 function closePopup() {
   document.getElementById("popupModal").classList.add("hidden");
 }
-
-// ===== Make global for buttons =====
-window.searchByText = searchByText;
-window.searchByImage = searchByImage;
-window.closePopup = closePopup;
-window.repeatSearch = repeatSearch;
